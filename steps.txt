@@ -1,0 +1,36 @@
+Захожу в рут и устанавливаю все пакеты:
+su -
+apt install vim -y     //-y - означает что ответ yes на любой последующий запрос
+apt install sudo -y
+sudo apt update -y && sudo apt upgrade -y
+
+1) You must create a non-root user to connect to the machine and work.
+
+adduser maxon
+user mod -aG sudo maxon
+
+or
+
+adduser user -ingroup sudo
+
+groups maxon - для просмотра добавлен ли он в судо группу
+
+2) Use sudo, with this user, to be able to perform operation requiring special rights.
+
+Заходим и прописываем любую команду чтобы проверить выполняются ли команды с рытом, действительно ли команда была применена
+
+3)We don’t want you to use the DHCP service of your machine. You’ve got to configure it to have a static IP and a Netmask in \30.
+
+
+
+4)You have to change the default port of the SSH service by the one of your choice. SSH access HAS TO be done with publickeys. SSH root access SHOULD NOT be allowed directly, but with a user who can be root.
+
+5) You have to set the rules of your firewall on your server only with the services used outside the VM.
+
+6)You have to set a DOS (Denial Of Service Attack) protection on your open ports of your VM.
+
+7)You have to set a protection against scans on your VM’s open ports.
+
+8) Stop the services you don’t need for this project.
+
+9)Create a script that updates all the sources of package, then your packages and which logs the whole in a file named /var/log/update_script.log. Create a scheduled task for this script once a week at 4AM and every time the machine reboots.10)Make a script to monitor changes of the /etc/crontab file and sends an email to root if it has been modified. Create a scheduled script task every day at midnight.
