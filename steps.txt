@@ -21,16 +21,157 @@ groups maxon - для просмотра добавлен ли он в судо 
 
 3)We don’t want you to use the DHCP service of your machine. You’ve got to configure it to have a static IP and a Netmask in \30.
 
+Изменяем в настройках виртуальной машины на Bridge Adapter( Это для более сложных сетевых задач, таких как моделирование сети и запуск серверов в гостевой системе.)
+
+Затем заходим в файл /etc/network/interfaces и вставляем: auto enp0s3iface enp0s3 inet staticaddress 10.0.2.1 
+netmask 255.255.255.252 
+gateway 10.0.2.2
+
+Затем sudo ifup enp0s3 - поднять
+	sudo ifdown enp0s3 - опустить
+
+sudo systemctl status networking.service - Просмотреть Raise network interfaces (активен ли он)
+
+sudo systemctl restart networking.service - рестартнуть после каких-либо изменений
+
+
+!!!(ip n)или (ip a) - проверить все ли правильно сделано было
+
 
 
 4)You have to change the default port of the SSH service by the one of your choice. SSH access HAS TO be done with publickeys. SSH root access SHOULD NOT be allowed directly, but with a user who can be root.
 
+Заходим в свой терминао, пишем ssh-keygen -t rsa в папка id_rsa с passphrase «id_rsa.pub»
+
+Создались ключи, затем мы копируем в нашу виртуалку ssh-copy-id -i ~/.ssh/id_rsa.pub maxon@localhost -p 2200
+
+В виртуалке мы можем проверить: заходим в cd .ssh/  затем смотрим ls
+
+
+Конкретно по заданию: заходим в /etc/ssh/sshd_config и комментим 13ю линию и заменяем на другой порт например 50002
+Затем 33ю линию ‘ PermitRootLogin prohibit-password ’ заменяем на ‘ PermitRootLogin no ’ - чтобы отключить root-вход через SSH.
+Затем 58ю линию ‘ PasswordAuthentication yes’  на ‘ PasswordAuthentication no ’
+
 5) You have to set the rules of your firewall on your server only with the services used outside the VM.
+
+Бранмауэр - русское название firewall - это система сетевой безопасности, которая отслеживает и контролирует входящий и исходящий сетевой трафик на основе заранее определенных правил безопасности. 
+
+ufw - (незамысловатый межсетевой экран») — это утилита для конфигурирования межсетевого экрана Netfilter( межсетевой экран (брандмауэр), встроен в ядро Linux)
+
+По умолчанию дистрибутив Debian и Ubuntu поставляется с инструментом настройки брандмауэра под названием UFW (Uncomplicated Firewall), который является самым популярным и простым в использовании инструментом командной строки для настройки и управления брандмауэром в дистрибутивах Ubuntu и Debian.
+
+sudo ufw status verbose - проверить статус ufw
+
+Показать процессы, которые слушают порты:    
+sudo lsof -inetstat -tulpn
+
+По умолчанию брандмауэр UFW отклоняет все входящие соединения и разрешает только исходящие подключения к серверу. Это означает, что никто не может получить доступ к вашему серверу, если только вы специально не открываете порт, а все запущенные службы или приложения на вашем сервере могут иметь доступ к внешней сети.
+
+sudo ufw default deny incoming - запретить входящиеsudo ufw default allow outgoing - разрешить исходящие
+Эти команды устанавливают значения по умолчанию, чтобы запретить входящие и разрешить исходящие подключения
+
+
+Политики брандмауэра UFW находится в файле /etc/default/ufw заходим туда и меняем на ipv6=no
+
+An Internet Protocol Version 6 address (IPv6 address) is a numerical label that is used to identify a network interface of a computer or a network node participating in an IPv6 computer network and for locating it in the network. IP addresses are transmitted in the fields of the packet header to indicate the source and the destination of each network packet. The IP address of the destination address is used to make decisions about routing IP packets to other networks.
+
+IPv6 is the successor to the first addressing infrastructure of the Internet, Internet Protocol version 4 (IPv4). In contrast to IPv4, which defined an IP address as a 32-bit value, IPv6 addresses have a size of 128 bits. Therefore, IPv6 has a vastly enlarged address space compared to IPv4.
+
+Включаем ufw:
+sudo ufw enable
+sudo ufw status verbose - смотрим статус
+
+sudo ufw allow 22222/tcpsudo ufw allow 80/tcpsudo ufw allow 443/tcp
+https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu-18-04
+sudo ufw logging lowsudo ufw reloadsudo ufw status verbose
+
+
+
+
+sudo ufw status verbose!!!!
+
+http://blog.sedicomm.com/2018/07/06/kak-nastroit-brandmauer-ufw-na-ubuntu-i-debian/
 
 6)You have to set a DOS (Denial Of Service Attack) protection on your open ports of your VM.
 
+Устанавливаем nginx
+sudo apr install nginx -y
+
 7)You have to set a protection against scans on your VM’s open ports.
 
-8) Stop the services you don’t need for this project.
+# Install  PortSentry , an attack detection tool:sudo apt install portsentry -y# Open the file ‘ sudo vim   /etc/default/portsentry ’,  comment the lines 9 and 10 ( ‘ TCP_MODE="atcp"’   ,  ‘ UDP_MODE="audp" ’ ) and add two ones below them:TCP_MODE="atcp"UDP_MODE="audp"# Open the file ‘ /etc/portsentry/portsentry.conf ’, comment the lines 35 and 36 ( BLOCK_UDP="0", BLOCK_TCP="0" ) and add two ones below them:BLOCK_UDP="1"BLOCK_TCP="1"# Restart  PortSentry  and see its status:sudo systemctl restart portsentrysudo systemctl status portsentry
+
+8) Stop the services you don’t need for this projet.
 
 9)Create a script that updates all the sources of package, then your packages and which logs the whole in a file named /var/log/update_script.log. Create a scheduled task for this script once a week at 4AM and every time the machine reboots.10)Make a script to monitor changes of the /etc/crontab file and sends an email to root if it has been modified. Create a scheduled script task every day at midnight.
+
+
+
+Roger + Docker 
+https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
+systemctl stop NetworkManager.service
+systemctl disable NetworkManager.service
+/30 mask
+https://www.aelius.com/njh/subnet_sheet.html
+Change port 
+https://www.cyberciti.biz/faq/howto-change-ssh-port-on-linux-or-unix-server/
+Rsa keys
+https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+https://www.ssh.com/ssh/keygen/
+Passphrase roger
+scp -P 2222 .ssh/id_rsa.pub roger@127.0.0.1:/home/roger
+Firewall
+https://wiki.debian.org/Uncomplicated%20Firewall%20%28ufw%29
+https://www.linode.com/docs/security/firewalls/configure-firewall-with-ufw/
+https://askubuntu.com/questions/541675/ufw-is-blocking-all-even-when-i-set-rules-to-allow
+sudo ufw allow [port(42)])/tcp
+DOS
+https://javapipe.com/blog/iptables-ddos-protection/
+Reset Iptables
+https://www.digitalocean.com/community/tutorials/how-to-list-and-delete-iptables-firewall-rules
+Fail2ban settings
+/etc/fail2ban/jail.conf
+https://www.garron.me/en/go2linux/fail2ban-protect-web-server-http-dos-attack.html
+https://community.vscale.io/hc/ru/community/posts/211756429-%D0%98%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5-fail2ban-%D0%B4%D0%BB%D1%8F-%D0%B7%D0%B0%D1%89%D0%B8%D1%82%D1%8B-SSH-%D0%BE%D1%82-%D0%BF%D0%BE%D0%B4%D0%B1%D0%BE%D1%80%D0%B0-%D0%BF%D0%B0%D1%80%D0%BE%D0%BB%D1%8F
+Portsentry
+/etc/default/portsentry
+Add a in /def/portsentry to blind unused
+Comment KILL_ROUTE
+Uncomment I-tables support for linux
+Comment KILL_HOSTS_DENY
+http://manpages.ubuntu.com/manpages/bionic/man8/portsentry.8.html
+https://en-wiki.ikoula.com/en/To_protect_against_the_scan_of_ports_with_portsentry
+https://wiki.gentoo.org/wiki/PortSentry
+https://www.opennet.ru/docs/RUS/portsentry/portsentry3.html
+Crontab 
+https://www.adminschoice.com/crontab-quick-reference
+https://www.cyberciti.biz/faq/how-do-i-add-jobs-to-cron-under-linux-or-unix-oses/
+Apache
+https://vitux.com/how-to-install-and-configure-apache-web-server-on-ubuntu/
+https://www.linode.com/community/questions/311/how-do-i-enabledisable-a-website-hosted-with-apache
+https://d1mon.com/n/1404
+Ssl
+https://cwiki.apache.org/confluence/display/HTTPD/NameBasedSSLVHosts
+https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04
+Git hooks
+https://gist.github.com/lazypower/3866399 
+https://gist.github.com/noelboss/3fe13927025b89757f8fb12e9066f2fa 
+git remote add staging ssh://roger@127.0.0.1:2222/home/roger/deploy_folder 
+git push staging master
+Ssh config
+https://nerderati.com/2011/03/17/simplify-your-life-with-an-ssh-config-file/
+sudo systemctl disable console-setup.service
+sudo systemctl disable keyboard-setup.service
+sudo systemctl disable apt-daily.timer
+sudo systemctl disable apt-daily-upgrade.timer
+sudo systemctl disable syslog.service
+https://github.com/gde-pass/roger-skyline-1/blob/master/README.md
+01_Dockerfile
+—rm
+https://docs.docker.com/engine/reference/run/#clean-up---rm
+—ti
+https://docs.docker.com/engine/reference/commandline/exec/
+
+
+1. DEvices - последнее
+Cd Medea/cdrom0. И там запускам VBox.run
