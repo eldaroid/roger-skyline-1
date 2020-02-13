@@ -96,16 +96,72 @@ http://blog.sedicomm.com/2018/07/06/kak-nastroit-brandmauer-ufw-na-ubuntu-i-debi
 
 Устанавливаем nginx
 sudo apr install nginx -y
+sudo service nginx status
+Заходим сюда
+sudo vim /etc/nginx/nginx.conf
+Меняем 7ю линию worker_connections 768; на  worker_connections 20000;
+И обновляем
+sudo service nginx restart
+
+Скачиваем фейлтобан
+sudo apt install fail2ban -y 
+sudo service fail2ban status 
+sudo service fail2ban stop
+
+Sudo vim /etc/fail2ban/jail.local
+[nginx-dos]# Any IP requesting more than 240 pages in 60 seconds, # or 4 p/s average, is suspicious. Block it for two full days.enabled = trueport = httpfilter = nginx-doslogpath = /var/log/nginx/access.logfindtime = 60bantime = 172800maxretry = 240
+
+Sudo vim /etc/fail2ban/filter.d/nginx-dos.conf
+Definition]# Option: failregex# Notes.: Regexp to catch a generic call from an IP address.# Values: TEXTfailregex = ^<HOST> -.*"(GET|POST).*HTTP.*"$# Option: ignoreregex# Notes.: regex to ignore. If this regex matches, the line is ignored.# Values: TEXT#ignoreregex =
+
+sudo service fail2ban restartsudo fail2ban-client statussudo fail2ban-client status nginx-dos
+
 
 7)You have to set a protection against scans on your VM’s open ports.
 
-# Install  PortSentry , an attack detection tool:sudo apt install portsentry -y# Open the file ‘ sudo vim   /etc/default/portsentry ’,  comment the lines 9 and 10 ( ‘ TCP_MODE="atcp"’   ,  ‘ UDP_MODE="audp" ’ ) and add two ones below them:TCP_MODE="atcp"UDP_MODE="audp"# Open the file ‘ /etc/portsentry/portsentry.conf ’, comment the lines 35 and 36 ( BLOCK_UDP="0", BLOCK_TCP="0" ) and add two ones below them:BLOCK_UDP="1"BLOCK_TCP="1"# Restart  PortSentry  and see its status:sudo systemctl restart portsentrysudo systemctl status portsentry
+Скачать Портсентри
+sudo apt install portsentry -y# Open the file ‘ sudo vim   /etc/default/portsentry ’,  comment the lines 9 and 10 ( ‘ TCP_MODE="atcp"’   ,  ‘ UDP_MODE="audp" ’ ) and add two ones below them:TCP_MODE="atcp"UDP_MODE="audp"# Open the file ‘ /etc/portsentry/portsentry.conf ’, comment the lines 135 and 136 ( BLOCK_UDP="0", BLOCK_TCP="0" ) and add two ones below them:BLOCK_UDP="1"BLOCK_TCP="1"# Restart  PortSentry  and see its status:sudo systemctl restart portsentrysudo systemctl status portsentry
 
 8) Stop the services you don’t need for this projet.
+sudo service --status-allsystemctl list-unit-files --type service --state enabled
 
-9)Create a script that updates all the sources of package, then your packages and which logs the whole in a file named /var/log/update_script.log. Create a scheduled task for this script once a week at 4AM and every time the machine reboots.10)Make a script to monitor changes of the /etc/crontab file and sends an email to root if it has been modified. Create a scheduled script task every day at midnight.
+
+9)Create a script that updates all the sources of package, then your packages and which logs the whole in a file named /var/log/update_script.log. Create a scheduled task for this script once a week at 4AM and every time the machine reboots./var/log/update_script.log 
+sudo chmod 666 /var/log/update_script.log
+
+/etc/cron.d/update_packages.sh
+sudo chmod +x /etc/cron.d/update_packages.sh
+Добавить /etc/cron.d/update_packages.sh
+#!/bin/shLOG="/var/log/update_script.log"sudo apt update -y | tail -n1 > $LOGsudo apt upgrade -y | tail -n1 >> $LOGDATE=`date +%d.%m.%Y`TIME=`date +%T`team="R4Y7r4c1N9_C4P031R4"echo "\033[0;33mLast update: $DATE, $TIME \033[m"echo "created by\033[0;31m $team \33[m"exit
+
+crontab -e (2)
+@reboot root /etc/cron.d/update_packages.sh
+0 4 * * 6 root /etc/cron.d/update_packages.sh
+systemctl restart cronsystemctl status cron
+10)Make a script to monitor changes of the /etc/crontab file and sends an email to root if it has been modified. Create a scheduled script task every day at midnight.
 
 
+sudo apt install mailutils -y
+/etc/cron.d/monitor_changes.sh 
+sudo chmod +x /etc/cron.d/monitor_changes.sh
+
+/etc/cron.d/monitor_changes.sh
+#!/bin/shMSG="File /etc/crontab has been modified!" SUBJECT="Monitor changes crontab"TO="root@localhost"HASH="/etc/cron.d/hash.txt"FILE="/etc/crontab"test -f $HASH || sudo touch $HASHCRON_HASH=$(sudo md5sum $FILE)if [ "$(cat $HASH)" != "$CRON_HASH" ]; then     echo $CRON_HASH > $HASH     echo $MSG | mail -s "$SUBJECT" $TOfi;exit
+
+crontab -e
+0 0 * * * root /etc/cron.d/monitor_changes.sh
+systemctl restart cronsystemctl status cron
+
+
+
+Part 2
+Country Name (2 letter code) [AU]:US
+State or Province Name (full name) [Some-State]:New York
+Locality Name (eg, city) []:New York City
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:
+Organizational Unit Name (eg, section) []:Ministry of Water Slides
+Common Name (e.g. server FQDN or YOUR name) []:server_IP_address
+Email Address []:eldario10@mail.ru
 
 Roger + Docker 
 https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
@@ -175,3 +231,10 @@ https://docs.docker.com/engine/reference/commandline/exec/
 
 1. DEvices - последнее
 Cd Medea/cdrom0. И там запускам VBox.run
+
+
+2. Ошибка: portsentry заблочила самого меня:
+		cd /etc
+		cat hosts.deny
+		sudo vim hosts.deny
+		и удаляем “ALL: 10.0.2.2 : DENY
