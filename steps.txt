@@ -221,9 +221,10 @@ vim post-receive
 	#!/bin/sh
 	git --work-tree=/var/www/html --git-dir=/var/repo/html.git checkout -f
 sudo chmod +x post-receive
-sudo chown -hR jsabina /var/repo/html.git/
-sudo chown -hR jsabina /var/www/html/
+sudo chown -hR maxon /var/repo/html.git/
+sudo chown -hR maxon /var/www/html/
 exit
+
 MAC mkdir roger
 git init
 git remote add live ssh://maxon@localhost:2200/var/repo/html.git
@@ -231,6 +232,13 @@ vim index.html /// Edit
 git add .
 git commit -m "lala"
 git push live master
+
+
+Or
+Git init
+git remote add live ssh://maxon@localhost:2200/var/repo/html.git
+git pull live master
+ls
 
 Apache
 https://vitux.com/how-to-install-and-configure-apache-web-server-on-ubuntu/
