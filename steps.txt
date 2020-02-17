@@ -38,6 +38,8 @@ sudo systemctl restart networking.service - рестартнуть после к
 !!!(ip n)или (ip a) - проверить все ли правильно сделано было
 
 
+https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
+https://www.aelius.com/njh/subnet_sheet.html - калькулятор
 
 4)You have to change the default port of the SSH service by the one of your choice. SSH access HAS TO be done with publickeys. SSH root access SHOULD NOT be allowed directly, but with a user who can be root.
 
@@ -51,6 +53,12 @@ sudo systemctl restart networking.service - рестартнуть после к
 Конкретно по заданию: заходим в /etc/ssh/sshd_config и комментим 13ю линию и заменяем на другой порт например 50002
 Затем 33ю линию ‘ PermitRootLogin prohibit-password ’ заменяем на ‘ PermitRootLogin no ’ - чтобы отключить root-вход через SSH.
 Затем 58ю линию ‘ PasswordAuthentication yes’  на ‘ PasswordAuthentication no ’
+
+https://www.cyberciti.biz/faq/howto-change-ssh-port-on-linux-or-unix-server/
+https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+https://www.ssh.com/ssh/keygen
+Passphrase roger
+scp -P 2222 .ssh/id_rsa.pub roger@127.0.0.1:/home/roger
 
 5) You have to set the rules of your firewall on your server only with the services used outside the VM.
 
@@ -91,6 +99,10 @@ sudo ufw logging lowsudo ufw reloadsudo ufw status verbose
 sudo ufw status verbose!!!!
 
 http://blog.sedicomm.com/2018/07/06/kak-nastroit-brandmauer-ufw-na-ubuntu-i-debian/
+https://wiki.debian.org/Uncomplicated%20Firewall%20%28ufw%29
+https://www.linode.com/docs/security/firewalls/configure-firewall-with-ufw/
+https://askubuntu.com/questions/541675/ufw-is-blocking-all-even-when-i-set-rules-to-allow
+sudo ufw allow [port(42)])/tcp
 
 6)You have to set a DOS (Denial Of Service Attack) protection on your open ports of your VM.
 
@@ -116,13 +128,31 @@ Definition]# Option: failregex# Notes.: Regexp to catch a generic call from an
 
 sudo service fail2ban restartsudo fail2ban-client statussudo fail2ban-client status nginx-dos
 
+https://javapipe.com/blog/iptables-ddos-protection/
+Reset Iptables
+https://www.digitalocean.com/community/tutorials/how-to-list-and-delete-iptables-firewall-rules
+/etc/fail2ban/jail.conf
+https://www.garron.me/en/go2linux/fail2ban-protect-web-server-http-dos-attack.html
+https://community.vscale.io/hc/ru/community/posts/211756429-%D0%98%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5-fail2ban-%D0%B4%D0%BB%D1%8F-%D0%B7%D0%B0%D1%89%D0%B8%D1%82%D1%8B-SSH-%D0%BE%D1%82-%D0%BF%D0%BE%D0%B4%D0%B1%D0%BE%D1%80%D0%B0-%D0%BF%D0%B0%D1%80%D0%BE%D0%BB%D1%8F
 
 7)You have to set a protection against scans on your VM’s open ports.
 
 Скачать Портсентри
 sudo apt install portsentry -y# Open the file ‘ sudo vim   /etc/default/portsentry ’,  comment the lines 9 and 10 ( ‘ TCP_MODE="atcp"’   ,  ‘ UDP_MODE="audp" ’ ) and add two ones below them:TCP_MODE="atcp"UDP_MODE="audp"# Open the file ‘ /etc/portsentry/portsentry.conf ’, comment the lines 135 and 136 ( BLOCK_UDP="0", BLOCK_TCP="0" ) and add two ones below them:BLOCK_UDP="1"BLOCK_TCP="1"# Restart  PortSentry  and see its status:sudo systemctl restart portsentrysudo systemctl status portsentry
 
+Portsentry
+/etc/default/portsentry
+Add a in /def/portsentry to blind unused
+Comment KILL_ROUTE
+Uncomment I-tables support for linux
+Comment KILL_HOSTS_DENY
+http://manpages.ubuntu.com/manpages/bionic/man8/portsentry.8.html
+https://en-wiki.ikoula.com/en/To_protect_against_the_scan_of_ports_with_portsentry
+https://wiki.gentoo.org/wiki/PortSentry
+https://www.opennet.ru/docs/RUS/portsentry/portsentry3.html
+
 8) Stop the services you don’t need for this projet.
+
 sudo service --status-allsystemctl list-unit-files --type service --state enabled
 
 
@@ -138,8 +168,9 @@ crontab -e (2)
 @reboot root /etc/cron.d/update_packages.sh
 0 4 * * 6 root /etc/cron.d/update_packages.sh
 systemctl restart cronsystemctl status cron
-10)Make a script to monitor changes of the /etc/crontab file and sends an email to root if it has been modified. Create a scheduled script task every day at midnight.
-
+Crontab 
+https://www.adminschoice.com/crontab-quick-reference
+https://www.cyberciti.biz/faq/how-do-i-add-jobs-to-cron-under-linux-or-unix-oses/10)Make a script to monitor changes of the /etc/crontab file and sends an email to root if it has been modified. Create a scheduled script task every day at midnight.
 
 sudo apt install mailutils -y
 /etc/cron.d/monitor_changes.sh 
@@ -152,9 +183,11 @@ crontab -e
 0 0 * * * root /etc/cron.d/monitor_changes.sh
 systemctl restart cronsystemctl status cron
 
+11) Check that there is self-signed SSL on all services.
 
+# Install SSL on the VM using this manual for  nginx  web server: https://www.8host.com/blog/sozdanie-samopodpisannogo-ssl-sertifikata-dly a-nginx-v-ubuntu-16-04/  Russian .
 
-Part 2
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
 Country Name (2 letter code) [AU]:US
 State or Province Name (full name) [Some-State]:New York
 Locality Name (eg, city) []:New York City
@@ -163,52 +196,46 @@ Organizational Unit Name (eg, section) []:Ministry of Water Slides
 Common Name (e.g. server FQDN or YOUR name) []:server_IP_address
 Email Address []:eldario10@mail.ru
 
-Roger + Docker 
-https://linuxconfig.org/how-to-setup-a-static-ip-address-on-debian-linux
 systemctl stop NetworkManager.service
 systemctl disable NetworkManager.service
-/30 mask
-https://www.aelius.com/njh/subnet_sheet.html
-Change port 
-https://www.cyberciti.biz/faq/howto-change-ssh-port-on-linux-or-unix-server/
-Rsa keys
-https://help.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
-https://www.ssh.com/ssh/keygen/
-Passphrase roger
-scp -P 2222 .ssh/id_rsa.pub roger@127.0.0.1:/home/roger
-Firewall
-https://wiki.debian.org/Uncomplicated%20Firewall%20%28ufw%29
-https://www.linode.com/docs/security/firewalls/configure-firewall-with-ufw/
-https://askubuntu.com/questions/541675/ufw-is-blocking-all-even-when-i-set-rules-to-allow
-sudo ufw allow [port(42)])/tcp
-DOS
-https://javapipe.com/blog/iptables-ddos-protection/
-Reset Iptables
-https://www.digitalocean.com/community/tutorials/how-to-list-and-delete-iptables-firewall-rules
-Fail2ban settings
-/etc/fail2ban/jail.conf
-https://www.garron.me/en/go2linux/fail2ban-protect-web-server-http-dos-attack.html
-https://community.vscale.io/hc/ru/community/posts/211756429-%D0%98%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5-fail2ban-%D0%B4%D0%BB%D1%8F-%D0%B7%D0%B0%D1%89%D0%B8%D1%82%D1%8B-SSH-%D0%BE%D1%82-%D0%BF%D0%BE%D0%B4%D0%B1%D0%BE%D1%80%D0%B0-%D0%BF%D0%B0%D1%80%D0%BE%D0%BB%D1%8F
-Portsentry
-/etc/default/portsentry
-Add a in /def/portsentry to blind unused
-Comment KILL_ROUTE
-Uncomment I-tables support for linux
-Comment KILL_HOSTS_DENY
-http://manpages.ubuntu.com/manpages/bionic/man8/portsentry.8.html
-https://en-wiki.ikoula.com/en/To_protect_against_the_scan_of_ports_with_portsentry
-https://wiki.gentoo.org/wiki/PortSentry
-https://www.opennet.ru/docs/RUS/portsentry/portsentry3.html
-Crontab 
-https://www.adminschoice.com/crontab-quick-reference
-https://www.cyberciti.biz/faq/how-do-i-add-jobs-to-cron-under-linux-or-unix-oses/
+# Replace the ‘ /etc/nginx/sites-available/default ’ active configuration file with a new one called for instance ‘ /etc/nginx/sites-available/active_conf ’ and add to it the following lines:server {listen  <VM's IP address>:  80;server_name localhost: <mac port that forwards tothe VM's HTTPS port> ;return 302 https://$server_name$request_uri;}server {listen  <VM's IP address>:  443 ssl http2; include snippets/self-signed.conf; include snippets/ssl-params.conf;     root /var/www/html;     server_name _;     location / {           try_files $uri $uri/ =404;     }}# Create a symbolic link:sudo ln -s /etc/nginx/sites-available/ active_conf /etc/nginx/sites-enabled/ active_conf# Then remove the file ‘ /etc/nginx/sites-enabled/default ’. Restart  nginx  and check its status:sudo systemctl restart nginxsudo systemctl status nginx
+
+Ssl
+https://cwiki.apache.org/confluence/display/HTTPD/NameBasedSSLVHosts
+https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04
+https://www.8host.com/blog/sozdanie-samopodpisannogo-ssl-sertifikata-dlya-apache-v-debian-9/
+
+
+
+
+Part 2
+
+Deployment
+
+apt-get install git
+mkdir /var/repo/html.git
+cd /html.git
+git init --bare
+cd hooks
+vim post-receive
+	#!/bin/sh
+	git --work-tree=/var/www/html --git-dir=/var/repo/html.git checkout -f
+sudo chmod +x post-receive
+sudo chown -hR jsabina /var/repo/html.git/
+sudo chown -hR jsabina /var/www/html/
+exit
+MAC mkdir roger
+git init
+git remote add live ssh://maxon@localhost:2200/var/repo/html.git
+vim index.html /// Edit
+git add .
+git commit -m "lala"
+git push live master
+
 Apache
 https://vitux.com/how-to-install-and-configure-apache-web-server-on-ubuntu/
 https://www.linode.com/community/questions/311/how-do-i-enabledisable-a-website-hosted-with-apache
 https://d1mon.com/n/1404
-Ssl
-https://cwiki.apache.org/confluence/display/HTTPD/NameBasedSSLVHosts
-https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04
 Git hooks
 https://gist.github.com/lazypower/3866399 
 https://gist.github.com/noelboss/3fe13927025b89757f8fb12e9066f2fa 
@@ -238,3 +265,191 @@ Cd Medea/cdrom0. И там запускам VBox.run
 		cat hosts.deny
 		sudo vim hosts.deny
 		и удаляем “ALL: 10.0.2.2 : DENY
+
+
+
+
+
+
+1. При установке debian мы уже создали пользователя fjessi без прав root, но можно его создать также следующим образом:
+    sudo adduser name_user -ingroup sudo (сразу с правами судо)
+Для проверки памяти
+apt install parted -y
+sudo parted -s /dev/sda unit GB print
+2. Для установки sudo:
+    su
+    password from poor user
+    apt install sudo
+    nano /etc/sudoers :
+    user_name ALL=(ALL:ALL) ALL
+3. Для отключения DHCP сервера: тыкаем на машину, File->Host Network Manager-> DHCP Server галочку отжимаем, а в строке IPv4 Network Mass в конце ставим 252 вместо последней цифры.
+   Чтобы сделать статический IP адрес через root открываем
+    nano /etc/network/interfaces
+    после строки “The primary network interfaces” все коммитим # и вставляем
+    auto enp0s8
+    iface enp0s8 inet static
+    address 192.168.56.2
+    netmask 255.255.255.252
+    сохраняем и перезагружаем
+    systemctl restart networking
+    sudo ifup enp0s3 еще раз запускаем 3
+    ip a проверяем что 3 динамик а 8 Глобал
+4. https://help.ubuntu.ru/wiki/ssh
+   Для установки SSH : sudo apt-get install ssh
+   Меняем номер порта: sudo nano /etc/ssh/sshd_config
+               Port 2222
+   Там же меняем доступ для root: PermitRootLogin no
+   Раскомичиваем PubkeyAuthentication yes указывает разрешена ли аутентификация на основе публичного ключа.
+   Сохраняем и перезапускаем сервер sudo systemctl restart ssh и потом тоже самое с sshd
+   Создаем rsa ключ на маке: ssh-keygen ->”enter”
+   Копируем ключ на машину: ssh-copy-id -I /Users/fjessi/.ssh/id_rsa.pub -p 2222 fjessi@127.0.0.1
+   На машине должен появиться ключ cd -> cat .ssh/authorized_keys
+   Sudo nano /etc/ssh/sshd_config
+        PasswordAuthentication no
+   Еще раз перезапускаем ssh сервис
+КОММЕНТ!! Чтоб у судо не было пароля:
+Sudo /etc/sudoers
+%sudo ALL=(ALL:ALL) NOPASSWD:ALL
+sudo usermod fjessi --groups sudo
+5. Устанавливаем firewall: sudo apt install ufw
+   sudo ufw status verbose проверка состояния firewall 
+   sudo ufw enable      включить ufw
+   Sudo ufw allow 2222 разрешить входящие ssh соединения   
+   Sudo ufw allow 80   для работы не зашифрованных веб-серверов (HTTP)
+   Sudo ufw allow 443  для зашифрованных портов (HTTPS)
+   sudo ufw status verbose еще раз проверяем статус
+   Sudo ufw delete и номер строки удаляем ненужные порты подключение через ip6
+   Начальная настройка (лучше делать перед давление правил 222 80 и 443…)
+По умолчанию UFW настройки запрещают все входящие соединения и разрешают все исходящие. Это значит, что если кто-то попытается  достичь ваш сервер, он не сможет подключиться, в то время как любое приложение на сервере имеет доступ к внешним соединениям.
+Cоответствующие правила фаервола прописываются так:
+  sudo ufw default deny incoming #Вхоядщий поток запрещен
+  sudo ufw default allow outgoing #Исходящий поток разрешен
+  
+   sudo ufw logging low  регистрирует все заблокированные пакеты, не соответствующие заданной политике (с ограничением скорости), а также пакеты, соответствующие зарегистрированным правилам.   
+   sudo ufw reload перзагрузка
+   sudo ufw status verbose
+6. DOS (Denial of Service Attack) атака отказа в обслуживании
+   
+1 способ был через апаш но что-то пошло не так/
+Устанавливаем Apache: sudo apt install apache2 
+   Пакет MOD_EVASIVE обеспечит защиту от DDOS flood-атак прикладного уровня, в то время как MOD_SECURITY обеспечит защиту от направленных атак, в том числе и атаки медленного чтения.
+    MOD_EVASIVE
+    sudo apt-get install libapache2-mod-evasive
+    sudo nano /etc/apache2/mods-enabled/evasive.conf
+    sudo mkdir /var/log/mod_evasive
+    sudo chown fjessi:fjessi /var/log/mod_evasive/
+    sudo a2enmod evasive “start”
+    sudo service apache2 restart
+    sudo systemctl restart apache2
+Для работы модуля понадобится папка для сохранения логов с правами для записи Apache (предполагается, что веб-сервер запущен от пользователя www-data):
+sudo mkdir /var/log/mod_evasive
+sudo chown fjessi:fjessi /var/log/mod_evasive/
+2способ через nginx
+ НО!!!! Сначал остановить апаче sudo service apache2 stop
+    sudo apt install nginx установить
+    sudo systemctl status nginx проверить статус
+    sudo nano  /etc/nginx/nginx.conf after 7 line write worker_connections 20000; and 7 закомитить
+    sudo service nginx restart перезапускаем
+    sudo apt install fail2ban -y 
+    sudo service fail2ban status
+    sudo nano /etc/fail2ban/jail.local создаем файл и добавляем:
+[nginx-dos]
+# Any IP requesting more than 240 pages in 60 seconds, 
+# or 4 p/s average, is suspicious. Block it for two full days.
+enabled = true
+port = http
+filter = nginx-dos
+logpath = /var/log/nginx/access.log
+findtime = 60
+bantime = 172800
+maxretry = 240
+    sudo nano /etc/fail2ban/filter.d/nginx-dos.conf создаем файл и добавляем
+[Definition]
+# Option: failregex
+# Notes.: Regexp to catch a generic call from an IP address.
+# Values: TEXT
+failregex = ^<HOST> -.*"(GET|POST).*HTTP.*"$
+# Option: ignoreregex
+# Notes.: regex to ignore. If this regex matches, the line is ignored.
+# Values: TEXT
+#
+ignoreregex =
+    sudo service fail2ban restart
+    sudo fail2ban-client status
+    sudo fail2ban-client status nginx-dos после атаки должно появиться что то типо было атака столько и тд показывает ip заблокированый
+7. Защищаем от сканирования портов.
+    Проверить открытые порты:
+    See the list the open ports
+    sudo apt install nmap -y
+    # or:
+    nmap --open localhost
+    
+    sudo apt install portsentry -y устанавливаем Рortsentry для обнаружения атак
+    
+    Open the file ‘ sudo vim   /etc/default/portsentry ’,  comment the lines 9  and 10 ( ‘ TCP_MODE="tcp"’   ,  ‘ UDP_MODE="udp" ’ ) and add two ones   below them:
+    TCP_MODE="atcp"
+    UDP_MODE="audp"
+    atcp/audp - продвинутые режимы сканирования.PortSentry будет вначале смотреть какие порты вы запустили на сервере, а затем выведет их из под наблюдения и начнет следить за остальными портами
+    sudo nano /etc/portsentry/portsentry.conf открываем файл и коментим 35 и 36 ( BLOCK_UDP="0", BLOCK_TCP="0" у меня по факту значительно ниже было) строку а потом добавляем ниже
+    BLOCK_UDP="1"
+    BLOCK_TCP="1"
+    Эта опция в зависимости от значения, задает ответную реакцию Portsentry на сканирование портов: 0 - не блокировать хост, не запускать заданную пользователем команду, 1 - блокировать хост и запустить команду, 2 - только запустить заданную команду.
+ДЛЯ ТЕСТИРОВАНИЯ:
+# See the processes that listen ports:
+sudo lsof -i
+# or:
+netstat -tulpn
+# See the list the open ports
+sudo apt install nmap -y
+# or:
+nmap --open localhost
+# Make sure that the files (all these files are in the directory ‘ /var/lib/portsentry ’) that contain lists of banned IP addresses are empty (clear them if they are not). Scan the ports in the following way (you have to scan the ports from the different machine than your VM):
+nmap <mac’s  IP address> -  p T:<  forwarded ports to scan(ex:8080,22000,44300)>
+# Or just some of them:
+nmap  <VM’s I  P address>  -p T: <ports to scan (ex:22,80,443)>
+# Then check whether  PortSentry  has managed to ban the IP address of the machine you used to scan the ports:
+cd /var/lib/portsentry
+sudo cat *
+# If  PortSentry  has done it properly you'll see the IP address of the machine that you used to scan the ports. Clear the bottom of the file ‘ /etc/hosts.deny ’ and clear all the files in the directory ‘ /var/lib/portsentry ’ if you want to unban the banned IP addresses.
+8.  Print out at the active services:
+    sudo service --status-all проверка статуса активный или нет (+/-)
+    systemctl list-unit-files --type service --state enabled проверка включен или нет
+    
+    sudo systemctl stop  <service> сначала останавливаем
+    sudo systemctl disable  <service> потом отключаем
+    https://linux-faq.ru/page/uskorenie-processa-zagruzki-distributiva-linux
+    То что оставляем:
+
+
+
+
+
+
+
+
+
+Apparmor — программный инструмент упреждающей защиты, основанный на политиках безопасности (известных также как профили), которые определяют, к каким системным ресурсам и с какими привилегиями может получить доступ то или иное приложение. В AppArmor включён набор стандартных профилей, а также инструменты статического анализа и инструменты, основанные на обучении, позволяющие ускорить и упростить построение новых профилей.
+    https://losst.ru/nastrojka-apparmor-v-ubuntu-16-04
+    autovt@.service - Является симлинком на getty@.service. В том случае, если нам нужен какой-то конкретный VT. За это отвечает logind, который при переключении на ttyN запускает сервис autovt@ttyN.service
+    cron — классический демон (компьютерная программа в системах класса UNIX), использующийся для периодического выполнения заданий в определённое время. Регулярные действия описываются инструкциями, помещенными в файлы crontab и в специальные каталоги.
+    D-Bus — система межпроцессного взаимодействия, которая позволяет приложениям в операционной системе сообщаться друг с другом.
+    Fail2ban - программа для блокировки IP-адресов при превышении количества попыток совершения какого-либо действия, например, неудачного ввода SSH-пароля или многократного запроса веб-страницы у сервера NGINX. Предназначен для использования на UNIX-подобных операционных системах, например Ubuntu, Debian, CentOS, FreeBSD.
+    Getty - программа, работающая на главном компьютере, которая управляет физическими или виртуальными терминалами (TTY). Когда он обнаруживает соединение, он запрашивает имя пользователя и запускает программу « login » для аутентификации пользователя.
+    Kmod - набор утилит и библиотекa для управления загрузкой модулей ядра Linux. Ключевым отличием от утилит, подобных modprobe и insmod, является использование в качестве основы библиотеки libkmod, функции которой можно использовать в любых других программах. 
+    Networking - для настройки сети используется
+    Nginx - программное обеспечение, написанное для UNIX-систем. Основное назначение — самостоятельный HTTP-сервер, или, как его используют чаще, фронтенд для высоконагруженных проектов. Возможно использование NGINX как почтового SMTP/IMAP/POP3-сервера, а также обратного TCP прокси-сервера.
+    Portsentry Позволяет обнаружить сканирование портов на хосте и отреагировать на такие просмотры.
+    Procps содержит программы для мониторинга и завершения системных процессов. Procps получает информацию о процессах из директории /proc.Устанавливаемые программы: free, kill, pgrep, pkill, pmap, ps, skill, snice, sysctl, tload, top, uptime, vmstat, w и watch
+    Rsyslog - это программная утилита с открытым исходным кодом, используемая в UNIX и Unix-подобных компьютерных системах для пересылки сообщений журнала в IP- сети . Он реализует базовый протокол системного журнала , расширяет его фильтрацией на основе содержимого, широкими возможностями фильтрации, операциями с очередями для обработки автономных выходов [2] , поддержкой различных выходов модуля [3] , гибкими параметрами конфигурации и добавляет такие функции, как использование TCP для транспорта.
+    Syslog (англ. system log — системный журнал) — стандарт отправки и регистрации сообщений о происходящих в системе событиях (то есть создания событийных журналов), использующийся в компьютерных сетях, работающих по протоколу IP. Термином «syslog» называют как ныне стандартизированный сетевой протокол syslog, так и программное обеспечение (приложение, библиотеку), которое занимается отправкой и получением системных сообщений.
+    SSH — сетевой протокол прикладного уровня, позволяющий производить удалённое управление операционной системой и туннелирование TCP-соединений (например, для передачи файлов). Схож по функциональности с протоколами Telnet и rlogin, но, в отличие от них, шифрует весь трафик, включая и передаваемые пароли. SSH допускает выбор различных алгоритмов шифрования. SSH-клиенты и SSH-серверы доступны для большинства сетевых операционных систем.
+    Udev — управление устройствами для новых версий ядра Linux, являющийся преемником devfs, hotplug и HAL. Его основная задача — обслуживание файлов устройств (англ. device nodes) в каталоге /dev и обработка всех действий, выполняемых в пространстве пользователя при добавлении/отключении внешних устройств, включая загрузку firmware.
+    UFW (Uncomplicated Firewall) - для настройки и управления брандмауэром в дистрибутивах Ubuntu и Debian. Правильно функционирующий брандмауэр является наиболее важной частью полной безопасности системы Linux. UFW позволяет сделать базовые настройки, для более сложных настроек используйте iptables.
+
+
+
+
+
+
+
+
